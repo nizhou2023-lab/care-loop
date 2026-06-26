@@ -1,0 +1,11 @@
+{
+  "name": "careloop-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CareLoop clickable AI product prototype for interview demo.",
+  "scripts": {
+    "dev": "python -m http.server 4173 --bind 127.0.0.1",
+    "preview": "python -m http.server 4173 --bind 127.0.0.1",
+    "deploy": "vercel --prod"
+  }
+}

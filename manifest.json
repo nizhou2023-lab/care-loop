@@ -1,0 +1,33 @@
+{
+  "name": "CareLoop Demo",
+  "short_name": "CareLoop",
+  "description": "A clickable AI product MVP for medication confirmation, event logging, risk signals, and doctor preparation.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef4ef",
+  "theme_color": "#147c74",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/careloop-visual.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open reminder",
+      "short_name": "Reminder",
+      "description": "Jump to the CareLoop demo reminder flow.",
+      "url": "/?flow=reminder"
+    },
+    {
+      "name": "Review log",
+      "short_name": "Log",
+      "description": "Review the local demo event log.",
+      "url": "/?screen=log"
+    }
+  ]
+}

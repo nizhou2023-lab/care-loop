@@ -72,6 +72,58 @@ GEMINI_MODEL=gemini-1.5-pro
 
 Do not put API keys in `app.js` or any frontend file.
 
+## Where to add API keys in Vercel
+
+Open the Vercel project, then go to:
+
+```text
+Settings -> Environment Variables
+```
+
+Add variables for `Production`, `Preview`, and `Development` if you want the
+same behavior everywhere.
+
+For DeepSeek:
+
+```text
+AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=your_key
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+For Gemini:
+
+```text
+AI_PROVIDER=gemini
+GEMINI_API_KEY=your_key
+GEMINI_MODEL=gemini-1.5-pro
+```
+
+After saving environment variables, redeploy the latest deployment from Vercel.
+Do not paste API keys into chat, GitHub, or frontend files.
+
+## Installing on a phone
+
+This project is now a PWA. After deploying to Vercel over HTTPS, open the public
+URL on your phone.
+
+iPhone:
+
+1. Open the Vercel URL in Safari.
+2. Tap Share.
+3. Tap `Add to Home Screen`.
+4. Open CareLoop from the home screen.
+
+Android:
+
+1. Open the Vercel URL in Chrome.
+2. Tap the three-dot menu.
+3. Tap `Install app` or `Add to Home screen`.
+4. Open CareLoop from the launcher.
+
+This gives you an app-like experience for personal testing. Real lock-screen
+widgets and notification actions still require a native app later.
+
 ## Recommended interview stance
 
 Use mock AI for the live interview path. Keep the live endpoint as architecture
@@ -99,6 +151,8 @@ The demo now has a more complete MVP data loop:
 - The `Log` screen shows recent confirmed, missed, unconfirmed, and uncertain events.
 - The `PM` screen calculates demo metrics from local events.
 - Refreshing the page keeps the demo event history in the same browser.
+- The app includes a PWA manifest and service worker, so it can be installed to
+  a phone home screen from the deployed HTTPS URL.
 
 If you deployed with Vercel Drop, upload the folder again to publish these
 changes. If you deploy from GitHub, commit and push the changes, then Vercel

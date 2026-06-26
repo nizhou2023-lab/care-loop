@@ -33,6 +33,8 @@ instructions.
 The demo now stores reminder actions in `localStorage`, so confirmation,
 uncertainty, and reminder-later actions remain visible after refresh in the
 same browser. The `Log` screen shows recent events and calculated demo metrics.
+It also includes a PWA manifest and service worker, so the deployed Vercel URL
+can be added to a phone home screen for app-like personal testing.
 
 The project also includes an optional Vercel serverless endpoint:
 `api/generate-questions.js`. It can call DeepSeek or Gemini when environment

@@ -72,6 +72,20 @@ const navItems = [
   ["pm", "PM"],
 ];
 
+function applyInitialRoute() {
+  const params = new URLSearchParams(window.location.search);
+  const screen = params.get("screen");
+  const flow = params.get("flow");
+
+  if (screens[screen]) {
+    state.screen = screen;
+  }
+
+  if (flow === "reminder") {
+    state.screen = "lock";
+  }
+}
+
 function loadSavedState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -764,4 +778,13 @@ async function generateLiveAi() {
 }
 
 loadSavedState();
+applyInitialRoute();
 render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {
+      // The prototype still works if the installable-app layer is unavailable.
+    });
+  });
+}

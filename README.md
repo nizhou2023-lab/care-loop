@@ -1,12 +1,12 @@
-# CareLoop interview demo
+# CareLoop
 
-This is a static, clickable AI product prototype for a product manager
-interview. Open `index.html` in a browser to demo the flow.
+CareLoop is an AI product prototype for chronic medication adherence support and doctor visit preparation. It explores low-friction reminder confirmation, uncertainty handling, adherence risk signals, and AI-assisted question generation within clear medical safety boundaries.
+Open `index.html` in a browser to demo the flow.
 
-## Suggested demo path
+## Demo Flow
 
 1. Start with the widget flow.
-2. Explain why widget and lock-screen entry points are the core usage bet.
+2. Review the widget-first entry strategy.
 3. Simulate the lock-screen popup.
 4. Click `Not sure`.
 5. Save the uncertain medication event.

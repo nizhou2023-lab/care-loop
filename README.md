@@ -43,17 +43,6 @@ variables are configured, but the main demo remains safe if no API key is set.
 See:
 
 - `deployment-and-ai-flow.md`
-- `interview-script-zh.md`
-- `interview-script.md`
-
-## Interview talking points for AI product roles
-
-- User insight: long-term adherence fails at the moment of recording, so the
-  best entry point is a widget or lock-screen action.
-- AI role: transform fragmented self-recorded events into structured doctor
-  communication.
-- Guardrail: if the model is uncertain, it should summarize records and ask the
-  user to consult a clinician, not infer medical decisions.
 - Metrics: reminder confirmation rate, uncertain event rate, doctor-prep usage,
   D7 retention, and cohort changes after enabling a second reminder.
 - Roadmap: prototype first, then native notifications/widgets and analytics,

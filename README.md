@@ -42,7 +42,6 @@ variables are configured, but the main demo remains safe if no API key is set.
 
 See:
 
-- `deployment-and-ai-flow.md`
 - Metrics: reminder confirmation rate, uncertain event rate, doctor-prep usage,
   D7 retention, and cohort changes after enabling a second reminder.
 - Roadmap: prototype first, then native notifications/widgets and analytics,

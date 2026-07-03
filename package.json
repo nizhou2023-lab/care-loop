@@ -6,6 +6,11 @@
   "scripts": {
     "dev": "python -m http.server 4173 --bind 127.0.0.1",
     "preview": "python -m http.server 4173 --bind 127.0.0.1",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
   }
 }

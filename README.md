@@ -48,3 +48,33 @@ after refresh in the same browser. It includes a PWA manifest and service worker
 so the deployed URL can be added to a phone home screen for app-like testing.
 
 This version does not require any API key or serverless function.
+
+## Local QA
+
+Run the static demo:
+
+```bash
+npm run dev
+```
+
+Run the Playwright E2E flow:
+
+```bash
+npm install
+npx playwright install
+npm run test:e2e
+```
+
+The E2E test covers opening the app, adding a medication, recording it as Taken,
+refresh persistence, History visibility, and deleting the medication plan without
+removing historical records.
+
+## Deployment Checklist
+
+- Confirm `.env`, API keys, and database connection strings are not committed.
+- Confirm Vercel is deploying the repository root or the cleaned static bundle.
+- Confirm no environment variables are required for the current static demo.
+- Open the deployed URL on desktop and mobile.
+- Add the deployed URL to a phone home screen and confirm standalone PWA launch.
+- Hard refresh after deployment if the service worker shows stale cached assets.
+- Verify Plan, Today, History, Risk, and lock-screen preview flows before sharing.

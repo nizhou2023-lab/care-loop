@@ -1,48 +1,49 @@
 # CareLoop
 
-CareLoop is an AI product prototype for chronic medication adherence support and doctor visit preparation. It explores low-friction reminder confirmation, uncertainty handling, adherence risk signals, and AI-assisted question generation within clear medical safety boundaries.
-Open `index.html` in a browser to demo the flow.
+CareLoop is a static, clickable product demo for medication adherence support.
+It shows a mobile-first flow for medication planning, daily recording,
+lock-screen reminders, history tracking, and AI-monitored risk alerts.
+
+CareLoop is not a medical advisor. It does not diagnose, change medication,
+recommend dosage, or provide missed-dose instructions.
 
 ## Demo Flow
 
-1. Start with the widget flow.
-2. Review the widget-first entry strategy.
-3. Simulate the lock-screen popup.
-4. Click `Not sure`.
-5. Save the uncertain medication event.
-6. Go to Log and explain the event history, persistence, and treatment-path risk detection.
-7. Go to Doctor and generate the mocked AI question list.
-8. Go to PM and explain metrics, prioritization, AI boundary, and roadmap.
+1. Open Home to view the adherence entry points.
+2. Open Plan to add a medication with name, dose note, frequency, reminder time,
+   and reminder behavior.
+3. Open Today and record a medication as Taken. The button changes to Recorded
+   and cannot be clicked repeatedly.
+4. Open Risk to view the AI-monitored risk alert concept.
+5. Preview the lock-screen reminder. Each pending medication has one Taken
+   button. The reminder stays until all due medications are recorded.
+6. Open History to view persisted local records and the late-record rule.
+7. Use Archive to remove a medication from the active plan while keeping its
+   history. Use Delete to fully remove an archived medication and its records.
 
-## Positioning line
+## AI Scope
 
-CareLoop is not a complete medical app and not an AI doctor. This prototype
-validates the core interaction loop: medication confirmation, uncertain status
-capture, treatment-path risk signals, and AI-assisted doctor visit preparation.
-The strongest product point is that the experience starts from low-friction
-daily surfaces such as widgets and lock-screen notifications, not from asking
-users to open a full app every day.
+The current demo does not call a live AI model. The Risk page shows where AI
+would be embedded in a production version.
 
-## AI explanation
+Future AI behavior:
 
-The current demo uses mocked AI output for reliability. In a real version, the
-AI layer would summarize self-recorded events into appointment questions, while
-avoiding diagnosis, medication changes, dosage advice, or missed-dose medical
-instructions.
+- Monitor behavior signals such as missing records, repeated late records, and
+  delayed check-ins.
+- Estimate whether the user may be at risk of medication routine drop-off.
+- Raise `Missing record risk` to `High` only when behavior data indicates risk.
+- Suggest operational actions such as setting an alarm or keeping a lock-screen
+  reminder active.
+- Stay inside the safety boundary: no diagnosis, no dose changes, and no medical
+  treatment advice.
 
-The demo now stores reminder actions in `localStorage`, so confirmation,
-uncertainty, and reminder-later actions remain visible after refresh in the
-same browser. The `Log` screen shows recent events and calculated demo metrics.
-It also includes a PWA manifest and service worker, so the deployed Vercel URL
-can be added to a phone home screen for app-like personal testing.
+In this demo, the Risk page uses deterministic frontend logic and sample data so
+the flow remains stable.
 
-The project also includes an optional Vercel serverless endpoint:
-`api/generate-questions.js`. It can call DeepSeek or Gemini when environment
-variables are configured, but the main demo remains safe if no API key is set.
+## Data and Deployment
 
-See:
+The demo stores medication plans and records in `localStorage`, so data persists
+after refresh in the same browser. It includes a PWA manifest and service worker,
+so the deployed URL can be added to a phone home screen for app-like testing.
 
-- Metrics: reminder confirmation rate, uncertain event rate, doctor-prep usage,
-  D7 retention, and cohort changes after enabling a second reminder.
-- Roadmap: prototype first, then native notifications/widgets and analytics,
-  then model-assisted summaries after safety review.
+This version does not require any API key or serverless function.

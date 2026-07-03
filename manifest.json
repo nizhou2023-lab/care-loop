@@ -1,7 +1,7 @@
 {
   "name": "CareLoop Demo",
   "short_name": "CareLoop",
-  "description": "A clickable AI product MVP for medication confirmation, event logging, risk signals, and doctor preparation.",
+  "description": "A clickable medication adherence demo for planning, recording, reminders, history, and risk alerts.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -20,13 +20,13 @@
     {
       "name": "Open reminder",
       "short_name": "Reminder",
-      "description": "Jump to the CareLoop demo reminder flow.",
+      "description": "Open the CareLoop reminder flow.",
       "url": "/?flow=reminder"
     },
     {
       "name": "Review log",
       "short_name": "Log",
-      "description": "Review the local demo event log.",
+      "description": "Review the local event history.",
       "url": "/?screen=log"
     }
   ]

@@ -1,790 +1,685 @@
-const app = document.querySelector("#app");
+const STORAGE_KEY = "careloop-demo-state-v6";
+const todayLabel = "Jun 26";
 
-const STORAGE_KEY = "careloop-demo-state-v2";
-
-const initialEvents = [
+const seedMeds = [
   {
-    id: "evt-2026-06-20-weekly-missed",
-    date: "Jun 20",
-    time: "20:00",
-    medication: "Weekly injection",
-    status: "missed",
-    source: "Reminder",
-    note: "No confirmation recorded before midnight.",
+    id: "med-bp",
+    name: "Blood pressure medication",
+    dose: "1 tablet after breakfast",
+    frequency: "daily",
+    reminderDay: "Every day",
+    reminderTime: "08:00",
+    status: "active",
+    createdAt: "2026-06-20T09:00:00.000Z"
   },
   {
-    id: "evt-2026-06-22-daily-confirmed",
-    date: "Jun 22",
-    time: "08:00",
-    medication: "Hydroxychloroquine",
-    status: "confirmed",
-    source: "Widget",
-    note: "One-tap confirmation from morning widget.",
-  },
-  {
-    id: "evt-2026-06-24-weekly-unconfirmed",
-    date: "Jun 24",
-    time: "20:00",
-    medication: "Weekly injection",
-    status: "unconfirmed",
-    source: "Lock screen",
-    note: "Reminder was shown but no action was taken.",
-  },
-  {
-    id: "evt-2026-06-25-daily-confirmed",
-    date: "Jun 25",
-    time: "08:00",
-    medication: "Hydroxychloroquine",
-    status: "confirmed",
-    source: "Widget",
-    note: "Routine daily confirmation.",
-  },
-  {
-    id: "evt-2026-06-26-weekly-uncertain",
-    date: "Jun 26",
-    time: "20:00",
-    medication: "Weekly injection",
-    status: "uncertain",
-    source: "Lock screen",
-    note: "User was not sure and saved uncertainty safely.",
-  },
+    id: "med-weekly",
+    name: "Weekly injection",
+    dose: "As prescribed",
+    frequency: "weekly",
+    reminderDay: "Friday",
+    reminderTime: "20:00",
+    status: "active",
+    createdAt: "2026-06-20T09:05:00.000Z"
+  }
 ];
 
-const state = {
-  screen: "welcome",
-  generatedQuestions: false,
-  liveAiStatus: "idle",
-  liveAiQuestions: [],
-  liveAiProvider: "",
-  liveAiError: "",
+const seedEvents = [
+  {
+    id: "event-1",
+    medId: "med-bp",
+    medName: "Blood pressure medication",
+    date: "Jun 25",
+    time: "08:10",
+    status: "confirmed",
+    source: "today",
+    note: "Recorded from Today."
+  },
+  {
+    id: "event-2",
+    medId: "med-weekly",
+    medName: "Weekly injection",
+    date: "Jun 19",
+    time: "21:08",
+    status: "late",
+    source: "lock-screen",
+    note: "Recorded more than 1 hour late. Counted as a late record."
+  }
+];
+
+const defaultState = {
+  screen: "entry",
+  meds: seedMeds,
+  events: seedEvents,
   showMedForm: false,
-  noteSaved: false,
-  reminderStatus: "pending",
-  events: [...initialEvents],
-  secondReminderEnabled: true,
+  editingMedId: null,
+  activeReminderMedId: "med-bp",
+  reminderEnabled: true,
+  lockSnoozed: false
 };
 
 const navItems = [
-  ["entry", "Entry"],
-  ["today", "Today"],
-  ["log", "Log"],
-  ["doctor", "Doctor"],
-  ["pm", "PM"],
+  { id: "entry", label: "Home" },
+  { id: "today", label: "Today" },
+  { id: "meds", label: "Plan" },
+  { id: "log", label: "History" },
+  { id: "doctor", label: "Risk" }
 ];
 
-function applyInitialRoute() {
-  const params = new URLSearchParams(window.location.search);
-  const screen = params.get("screen");
-  const flow = params.get("flow");
+let state = loadState();
 
-  if (screens[screen]) {
-    state.screen = screen;
-  }
-
-  if (flow === "reminder") {
-    state.screen = "lock";
-  }
-}
-
-function loadSavedState() {
+function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    if (Array.isArray(saved.events)) state.events = saved.events;
-    if (typeof saved.reminderStatus === "string") state.reminderStatus = saved.reminderStatus;
-    if (typeof saved.noteSaved === "boolean") state.noteSaved = saved.noteSaved;
-    if (typeof saved.generatedQuestions === "boolean") state.generatedQuestions = saved.generatedQuestions;
-    if (typeof saved.secondReminderEnabled === "boolean") {
-      state.secondReminderEnabled = saved.secondReminderEnabled;
-    }
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!stored) return structuredClone(defaultState);
+    return {
+      ...structuredClone(defaultState),
+      ...stored,
+      meds: Array.isArray(stored.meds) ? stored.meds : seedMeds,
+      events: Array.isArray(stored.events) ? stored.events : seedEvents
+    };
+  } catch (error) {
+    return structuredClone(defaultState);
   }
 }
 
-function persistState() {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({
-      events: state.events,
-      reminderStatus: state.reminderStatus,
-      noteSaved: state.noteSaved,
-      generatedQuestions: state.generatedQuestions,
-      secondReminderEnabled: state.secondReminderEnabled,
-    }),
-  );
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function addEvent(status, note, source = "Lock screen") {
-  state.events.unshift({
-    id: `evt-${Date.now()}`,
-    date: "Jun 26",
-    time: status === "confirmed" ? "20:01" : "20:00",
-    medication: "Weekly injection",
-    status,
-    source,
-    note,
-  });
-  state.events = state.events.slice(0, 12);
-  persistState();
-}
-
-function resetDemoData() {
-  state.events = [...initialEvents];
-  state.reminderStatus = "pending";
-  state.noteSaved = false;
-  state.generatedQuestions = false;
-  state.secondReminderEnabled = true;
-  persistState();
-  render();
-}
-
-function getEventStats() {
-  const total = state.events.length || 1;
-  const count = (status) => state.events.filter((event) => event.status === status).length;
-  const confirmed = count("confirmed");
-  const uncertain = count("uncertain");
-  const missed = count("missed");
-  const unconfirmed = count("unconfirmed");
-  const confirmationRate = Math.round((confirmed / total) * 100);
-  const uncertaintyRate = Math.round((uncertain / total) * 100);
-  const interruptions = missed + unconfirmed + uncertain;
-
-  return {
-    total,
-    confirmed,
-    uncertain,
-    missed,
-    unconfirmed,
-    interruptions,
-    confirmationRate,
-    uncertaintyRate,
-    doctorPrepRate: state.generatedQuestions ? 42 : 21,
-    riskLevel: interruptions >= 3 ? "Needs attention" : "Stable",
-  };
-}
-
-function setScreen(screen) {
+function setScreen(screen, options = {}) {
   state.screen = screen;
+  Object.assign(state, options);
+  saveState();
   render();
 }
 
-function escapeHtml(value) {
+function resetDemo() {
+  state = structuredClone(defaultState);
+  saveState();
+  render();
+}
+
+function activeMeds() {
+  return state.meds.filter((med) => med.status !== "archived");
+}
+
+function archivedMeds() {
+  return state.meds.filter((med) => med.status === "archived");
+}
+
+function getMed(id) {
+  return state.meds.find((med) => med.id === id) || activeMeds()[0] || seedMeds[0];
+}
+
+function todayEventForMed(medId) {
+  return state.events.find((event) => event.medId === medId && event.date === todayLabel);
+}
+
+function pendingLockMeds() {
+  return activeMeds().filter((med) => todayEventForMed(med.id)?.status !== "confirmed");
+}
+
+function statusCopy(status) {
+  const map = {
+    confirmed: "Taken",
+    uncertain: "Not sure",
+    later: "Remind later",
+    late: "Late record",
+    missed: "Missing",
+    pending: "Pending"
+  };
+  return map[status] || "Pending";
+}
+
+function frequencyCopy(med) {
+  if (med.frequency === "daily") return "Daily";
+  if (med.frequency === "weekly") return "Weekly";
+  if (med.frequency === "as-needed") return "As needed";
+  return "Custom";
+}
+
+function dueCopy(med) {
+  if (med.frequency === "weekly") return `${med.reminderDay || "Friday"} ${med.reminderTime || "20:00"}`;
+  if (med.frequency === "as-needed") return "Only when needed";
+  return `Today ${med.reminderTime || "08:00"}`;
+}
+
+function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+    .replaceAll('"', "&quot;");
 }
 
-function renderNav(active) {
-  return `
-    <nav class="nav" aria-label="Primary navigation">
-      ${navItems
-        .map(
-          ([key, label]) => `
-            <button class="${active === key ? "active" : ""}" data-screen="${key}" type="button" aria-label="${label}">
-              <span class="nav-mark"></span>${label}
-            </button>
-          `,
-        )
-        .join("")}
-    </nav>
-  `;
+function stats() {
+  const todayEvents = state.events.filter((event) => event.date === todayLabel);
+  const active = activeMeds();
+  const activeIds = new Set(active.map((med) => med.id));
+  const confirmedIds = new Set(
+    todayEvents
+      .filter((event) => activeIds.has(event.medId) && event.status === "confirmed")
+      .map((event) => event.medId)
+  );
+  const late = state.events.filter((event) => activeIds.has(event.medId) && event.status === "late").length;
+  const missing = todayEvents.filter(
+    (event) => activeIds.has(event.medId) && (event.status === "missed" || event.status === "later")
+  ).length;
+  const confirmed = confirmedIds.size;
+  const pending = Math.max(active.length - confirmed, 0);
+  const denominator = Math.max(active.length, 1);
+  return {
+    active: active.length,
+    confirmed,
+    pending,
+    late,
+    missing,
+    adherence: Math.round((confirmed / denominator) * 100)
+  };
 }
 
-function renderShell(active, content) {
-  return `
-    <div class="content with-nav">${content}</div>
-    ${renderNav(active)}
-  `;
+function recordCheckIn(medId, status, source = "today", note = "") {
+  const med = getMed(medId);
+  const now = new Date();
+  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+  const existing = todayEventForMed(med.id);
+  const nextNote = note || `${statusCopy(status)} from ${source}.`;
+
+  if (existing) {
+    if (existing.status === "confirmed" && status === "confirmed") return;
+    existing.status = status;
+    existing.time = time;
+    existing.source = source;
+    existing.note = nextNote;
+  } else {
+    state.events.unshift({
+      id: `event-${Date.now()}`,
+      medId: med.id,
+      medName: med.name,
+      date: todayLabel,
+      time,
+      status,
+      source,
+      note: nextNote
+    });
+  }
+
+  state.activeReminderMedId = med.id;
+  state.lockSnoozed = false;
+  saveState();
 }
 
-function welcome() {
+function saveMedicationFromForm() {
+  const name = document.querySelector("#med-name")?.value.trim();
+  const dose = document.querySelector("#med-dose")?.value.trim() || "As prescribed";
+  const frequency = document.querySelector("#med-frequency")?.value || "daily";
+  const reminderDay = document.querySelector("#med-day")?.value.trim() || "Every day";
+  const reminderTime = document.querySelector("#med-time")?.value || "20:00";
+
+  if (!name) {
+    const field = document.querySelector("#med-name");
+    field?.focus();
+    field?.classList.add("field-error");
+    return;
+  }
+
+  if (state.editingMedId) {
+    state.meds = state.meds.map((med) =>
+      med.id === state.editingMedId
+        ? { ...med, name, dose, frequency, reminderDay, reminderTime, status: "active" }
+        : med
+    );
+  } else {
+    const newMed = {
+      id: `med-${Date.now()}`,
+      name,
+      dose,
+      frequency,
+      reminderDay,
+      reminderTime,
+      status: "active",
+      createdAt: new Date().toISOString()
+    };
+    state.meds.unshift(newMed);
+    state.activeReminderMedId = newMed.id;
+  }
+
+  state.showMedForm = false;
+  state.editingMedId = null;
+  saveState();
+  setScreen("today");
+}
+
+function archiveMedication(medId) {
+  state.meds = state.meds.map((med) => (med.id === medId ? { ...med, status: "archived" } : med));
+  saveState();
+  render();
+}
+
+function restoreMedication(medId) {
+  state.meds = state.meds.map((med) => (med.id === medId ? { ...med, status: "active" } : med));
+  saveState();
+  render();
+}
+
+function deleteMedication(medId) {
+  state.meds = state.meds.filter((med) => med.id !== medId);
+  state.events = state.events.filter((event) => event.medId !== medId);
+  saveState();
+  render();
+}
+
+function medicationForm() {
+  const editing = state.editingMedId ? getMed(state.editingMedId) : null;
+  const med = editing || {
+    name: "",
+    dose: "",
+    frequency: "daily",
+    reminderDay: "Every day",
+    reminderTime: "20:00"
+  };
+  const reminderLabel = state.reminderEnabled ? "On" : "Off";
+
   return `
-    <div class="content">
-      <img class="hero-visual" src="assets/careloop-visual.png" alt="Abstract care path illustration" />
-      <p class="eyebrow">CareLoop</p>
-      <h1>Stay on your treatment path.</h1>
-      <p>
-        A mobile-first AI product prototype for low-friction medication
-        confirmation, uncertainty capture, adherence risk signals, and doctor
-        visit preparation.
-      </p>
-      <div class="stack">
-        <div class="soft-panel">
-          <h3>Product hypothesis</h3>
-          <p>
-            Long-term medication users will not open an app every day. The
-            product should meet them at the lock screen and widget, then turn
-            interruptions into a clear care conversation.
-          </p>
-        </div>
-        <button class="primary" data-screen="entry" type="button">Start with widget flow</button>
-        <button class="ghost" data-screen="pm" type="button">View AI product logic</button>
+    <section class="apple-med-flow" aria-label="Add medication">
+      <div class="apple-sheet-head">
+        <button class="text-btn" data-action="cancel-med-form">Cancel</button>
+        <strong>${editing ? "Edit Medication" : "Add Medication"}</strong>
+        <button class="text-btn strong" data-action="save-medication">Done</button>
       </div>
-    </div>
+      <div class="med-hero-card">
+        <div class="pill-visual"><span></span><span></span></div>
+        <div>
+          <span class="tiny-label dark">Medication</span>
+          <h2>${editing ? escapeHtml(med.name) : "What are you taking?"}</h2>
+          <p>Record the doctor's plan. CareLoop only reminds and logs. It never changes dosage.</p>
+        </div>
+      </div>
+      <div class="ios-group">
+        <div class="ios-row stacked">
+          <label for="med-name">Name</label>
+          <input id="med-name" value="${escapeHtml(med.name)}" placeholder="e.g: Blood pressure pills" />
+        </div>
+        <div class="ios-row stacked">
+          <label for="med-dose">Dose note</label>
+          <input id="med-dose" value="${escapeHtml(med.dose)}" placeholder="1 tablet after dinner" />
+        </div>
+      </div>
+      <div class="setup-step-title">Schedule</div>
+      <div class="ios-group">
+        <div class="ios-row">
+          <label for="med-frequency">Frequency</label>
+          <select id="med-frequency">
+            <option value="daily" ${med.frequency === "daily" ? "selected" : ""}>Every Day</option>
+            <option value="weekly" ${med.frequency === "weekly" ? "selected" : ""}>Weekly</option>
+            <option value="as-needed" ${med.frequency === "as-needed" ? "selected" : ""}>As Needed</option>
+            <option value="custom" ${med.frequency === "custom" ? "selected" : ""}>Custom</option>
+          </select>
+        </div>
+        <div class="ios-row">
+          <label for="med-time">Reminder</label>
+          <input id="med-time" type="time" value="${escapeHtml(med.reminderTime)}" />
+        </div>
+        <div class="ios-row stacked">
+          <label for="med-day">Day / rule</label>
+          <input id="med-day" value="${escapeHtml(med.reminderDay)}" placeholder="Every day / Friday / Custom rule" />
+        </div>
+      </div>
+      <div class="setup-step-title">Reminder behavior</div>
+      <div class="ios-group">
+        <button class="ios-row reminder-preview toggle-row" data-action="toggle-reminder">
+          <div>
+            <strong>15 min heads up</strong>
+            <span>Lock-screen reminder appears before the scheduled time and stays until a record is captured.</span>
+          </div>
+          <span class="switch-on ${state.reminderEnabled ? "" : "off"}">${reminderLabel}</span>
+        </button>
+      </div>
+      <button class="primary full" data-action="save-medication">${editing ? "Save medication" : "Add to Today"}</button>
+    </section>
   `;
 }
 
 function entry() {
-  const stats = getEventStats();
-
-  return renderShell(
-    "entry",
-    `
-      <p class="eyebrow">Low-friction entry</p>
-      <h2>Widget and lock-screen first</h2>
-      <p>The core behavior happens before the user opens the app: glance, tap, confirm, or safely mark uncertainty.</p>
-
-      <section class="widget-board">
-        <div class="mini-widget wide">
-          <div class="widget-top">
-            <span>CareLoop</span>
-            <span class="tag warning">${stats.interruptions} signals</span>
-          </div>
-          <strong>Weekly medication at 20:00</strong>
-          <p>Next review in 18 days</p>
-          <div class="progress" aria-label="Medication adherence ${stats.confirmationRate} percent"><span style="width: ${stats.confirmationRate}%"></span></div>
-        </div>
-
-        <div class="mini-widget">
-          <span class="mini-label">Risk</span>
-          <strong>${stats.riskLevel}</strong>
-          <p>${stats.uncertain} uncertain event${stats.uncertain === 1 ? "" : "s"} this week</p>
-        </div>
-
-        <div class="mini-widget">
-          <span class="mini-label">AI prep</span>
-          <strong>${state.generatedQuestions ? "4 questions" : "Not generated"}</strong>
-          <p>${state.generatedQuestions ? "Ready for doctor visit" : "Generate before review"}</p>
-        </div>
-      </section>
-
-      <section class="card">
-        <h3>Why this matters</h3>
-        <p>For chronic medication adherence, the usage bottleneck is not a prettier dashboard. It is reducing the cost of recording the moment when a reminder appears.</p>
-      </section>
-
-      <button class="primary" data-screen="lock" type="button">Simulate lock-screen popup</button>
-      <button class="secondary" data-screen="today" type="button">Open full app dashboard</button>
-    `,
-  );
-}
-
-function today() {
-  const stats = getEventStats();
-  const weeklyTag = state.reminderStatus === "confirmed" ? "Confirmed" : state.reminderStatus === "uncertain" ? "Uncertain" : "Pending";
-  const weeklyTagClass = state.reminderStatus === "confirmed" ? "" : "warning";
-
-  return renderShell(
-    "today",
-    `
-      <div class="top-row">
-        <div>
-          <p class="eyebrow">Today</p>
-          <h2>2 tasks need confirmation</h2>
-        </div>
-        <button class="icon-btn" data-screen="lock" type="button" aria-label="Open reminder">!</button>
-      </div>
-
-      <div class="stack">
-        <section class="card">
-          <div class="title-row">
-            <h3>Primary entry strategy</h3>
-            <span class="tag navy">Widget first</span>
-          </div>
-          <p>The full app is for review and context. Routine confirmation starts from widget or lock-screen actions.</p>
-          <button class="secondary" data-screen="entry" type="button">View widget hub</button>
-        </section>
-
-        <section class="card">
-          <div class="task-row">
-            <div class="task-main">
-              <span class="task-time">Morning</span>
-              <span class="task-name">Hydroxychloroquine</span>
-              <span class="task-detail">Daily tablet, self-recorded</span>
-            </div>
-            <span class="tag">Confirmed</span>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="task-row">
-            <div class="task-main">
-              <span class="task-time">20:00</span>
-              <span class="task-name">Weekly injection</span>
-            <span class="task-detail">Due tonight, waiting for confirmation</span>
-            </div>
-            <span class="tag ${weeklyTagClass}">${weeklyTag}</span>
-          </div>
-          <button class="primary" data-screen="lock" type="button">Review reminder</button>
-        </section>
-
-        <section class="card">
-          <div class="title-row">
-            <h3>Treatment path status</h3>
-            <span class="tag alert">${stats.riskLevel}</span>
-          </div>
-          <p>Next review in 18 days. Several recent interruptions may be worth discussing with your doctor.</p>
-          <div class="progress" aria-label="Medication adherence ${stats.confirmationRate} percent"><span style="width: ${stats.confirmationRate}%"></span></div>
-          <div class="disclaimer">Saved locally in this browser for demo persistence.</div>
-        </section>
-      </div>
-    `,
-  );
-}
-
-function meds() {
-  return renderShell(
-    "meds",
-    `
-      <div class="title-row">
-        <div>
-          <p class="eyebrow">Medication plan</p>
-          <h2>Current routine</h2>
-        </div>
-        <button class="icon-btn" data-action="toggle-form" type="button" aria-label="Add medication">+</button>
-      </div>
-
-      <div class="stack">
-        <section class="card">
-          <div class="title-row">
-            <h3>Hydroxychloroquine</h3>
-            <span class="tag">Active</span>
-          </div>
-          <p>Daily medication recorded for adherence tracking only.</p>
-          <div class="med-meta">
-            <span class="tag navy">Daily</span>
-            <span class="tag navy">08:00</span>
-            <span class="tag">Confirmed today</span>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="title-row">
-            <h3>Weekly injection</h3>
-            <span class="tag warning">Pending</span>
-          </div>
-          <p>Weekly medication reminder. Demo data only, no dosing guidance.</p>
-          <div class="med-meta">
-            <span class="tag navy">Weekly</span>
-            <span class="tag navy">Friday 20:00</span>
-            <span class="tag warning">Next tonight</span>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="title-row">
-            <h3>Vitamin D</h3>
-            <span class="tag">Planned</span>
-          </div>
-          <p>Every other day reminder used to demonstrate flexible schedules.</p>
-          <div class="med-meta">
-            <span class="tag navy">Every other day</span>
-            <span class="tag navy">12:30</span>
-          </div>
-        </section>
-
-        ${
-          state.showMedForm
-            ? `
-              <section class="card">
-                <h3>Add medication</h3>
-                <div class="form-grid">
-                  <label class="field"><span>Medication name</span><input value="Sample medication" /></label>
-                  <label class="field"><span>Frequency</span><select><option>Weekly</option><option>Daily</option><option>Every other day</option></select></label>
-                  <label class="field"><span>Dose</span><input value="As prescribed" /></label>
-                  <label class="field"><span>Reminder time</span><input value="20:00" /></label>
-                  <button class="secondary" data-action="toggle-form" type="button">Save demo medication</button>
-                </div>
-              </section>
-            `
-            : `<button class="secondary" data-action="toggle-form" type="button">Add medication</button>`
-        }
-      </div>
-    `,
-  );
-}
-
-function lock() {
+  const s = stats();
   return `
-    <div class="lockscreen">
-      <div>
-        <div class="lock-time">20:00</div>
-        <div class="lock-date">Friday, June 26</div>
+    <section class="hero entry-hero">
+      <div class="brand-row"><span class="logo-dot"></span><span>CARELOOP HOME</span></div>
+      <h1>Stay on your treatment path.</h1>
+      <p>Set up a medication plan, record today's doses, and use AI-monitored alerts to prevent drop-off.</p>
+      <div class="hero-actions">
+        <button class="primary" data-screen="today">Start Today</button>
+        <button class="secondary" data-screen="meds" data-open-form="true">Add Medication</button>
       </div>
-
-      <section class="notification">
-        <div class="notification-app">
-          <span>CareLoop</span>
-          <span>now</span>
-        </div>
-        <h2>Weekly medication due at 20:00.</h2>
-        <p>Confirm only what you know. If you are unsure, CareLoop records uncertainty instead of giving medical advice.</p>
-        <div class="lock-actions">
-          <button class="primary" data-action="taken" type="button">Taken</button>
-          <button class="secondary" data-action="later" type="button">Remind later</button>
-          <button class="danger-soft" data-screen="uncertain" type="button">Not sure</button>
-        </div>
-      </section>
-    </div>
+    </section>
+    <section class="widget-row">
+      <button class="widget-card" data-screen="today">
+        <span>Today</span>
+        <strong>${s.confirmed}/${Math.max(s.active, 1)} recorded</strong>
+        <small>${s.pending} pending check-in</small>
+      </button>
+      <button class="widget-card" data-screen="doctor">
+        <span>Risk preview</span>
+        <strong>15 min heads up</strong>
+        <small>Open AI-monitored alert</small>
+      </button>
+    </section>
   `;
 }
 
-function uncertain() {
-  return renderShell(
-    "today",
-    `
-      <button class="ghost" data-screen="lock" type="button">Back to reminder</button>
-      <section class="card uncertain-banner">
-        <p class="eyebrow">Uncertain medication status</p>
-        <h2>This dose has been marked as uncertain.</h2>
-        <p>
-          To avoid duplicate dosing, do not take extra medication based only on
-          this app. If this medication has strict timing requirements, contact
-          your doctor or pharmacist.
-        </p>
+function today() {
+  const meds = activeMeds();
+  const s = stats();
+  if (!meds.length) {
+    return `
+      <section class="panel empty-state">
+        <h2>No medication plan yet</h2>
+        <p>Create at least one medication plan before CareLoop can show today's tasks.</p>
+        <button class="primary full" data-screen="meds" data-open-form="true">Create medication plan</button>
       </section>
+    `;
+  }
 
-      <div class="stack">
-        <button class="secondary" data-action="check-pillbox" type="button">Check pill box</button>
-        <section class="card">
-          <label class="field">
-            <span>Add note</span>
-            <textarea>${state.noteSaved ? "I could not remember whether I completed the weekly dose." : ""}</textarea>
-          </label>
-        </section>
-        <button class="primary" data-action="save-uncertain" type="button">Save as uncertain</button>
-        ${
-          state.noteSaved
-            ? `<section class="soft-panel"><strong>Saved.</strong><p>This event now contributes to the risk summary and doctor prep list.</p></section>`
-            : ""
-        }
+  return `
+    <section class="summary-band">
+      <div><span>Today</span><strong>${s.adherence}%</strong></div>
+      <div><span>Pending</span><strong>${s.pending}</strong></div>
+      <div><span>Late</span><strong>${s.late}</strong></div>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><span>Today's medications</span><button class="ghost mini" data-screen="meds" data-open-form="true">Add</button></div>
+      <div class="task-list">
+        ${meds
+          .map((med) => {
+            const event = todayEventForMed(med.id);
+            const status = event?.status || "pending";
+            const isTaken = status === "confirmed";
+            return `
+              <article class="task-card ${status !== "pending" ? "task-complete" : ""}">
+                <div class="task-topline">
+                  <div>
+                    <strong>${escapeHtml(med.name)}</strong>
+                    <span>${escapeHtml(med.dose)} - ${frequencyCopy(med)}</span>
+                  </div>
+                  <em>${statusCopy(status)}</em>
+                </div>
+                <div class="task-meta">Due ${dueCopy(med)}${event ? ` - recorded ${event.time}` : ""}</div>
+                <div class="task-actions">
+                  <button class="primary compact ${isTaken ? "is-recorded" : ""}" data-action="check-in" data-med-id="${med.id}" data-status="confirmed" ${isTaken ? "disabled" : ""}>${isTaken ? "Recorded" : "Taken"}</button>
+                  <button class="secondary compact" data-action="check-in" data-med-id="${med.id}" data-status="uncertain">Not sure</button>
+                </div>
+              </article>
+            `;
+          })
+          .join("")}
       </div>
-    `,
-  );
+    </section>
+  `;
 }
 
-function statusTag(status) {
-  if (status === "confirmed") return `<span class="tag">Confirmed</span>`;
-  if (status === "uncertain") return `<span class="tag warning">Uncertain</span>`;
-  if (status === "missed") return `<span class="tag alert">Missed</span>`;
-  return `<span class="tag navy">Unconfirmed</span>`;
+function meds() {
+  const active = activeMeds();
+  const archived = archivedMeds();
+  return `
+    <section class="plan-header">
+      <div>
+        <span class="tiny-label dark">Plan</span>
+        <h2>Medications</h2>
+        <p>Archive removes a medication from today's plan but keeps all history records.</p>
+      </div>
+      <button class="primary mini" data-action="new-medication">Add</button>
+    </section>
+    ${state.showMedForm ? medicationForm() : ""}
+    <section class="panel">
+      <div class="section-heading clean-heading"><span>Active medications - ${active.length}</span></div>
+      <div class="med-list">
+        ${active.length ? active.map((med) => `
+          <article class="med-card health-card">
+            <div class="med-icon-small"></div>
+            <div class="med-copy">
+              <strong>${escapeHtml(med.name)}</strong>
+              <span>${escapeHtml(med.dose)}</span>
+              <small>${frequencyCopy(med)} - ${dueCopy(med)}</small>
+            </div>
+            <div class="row-actions">
+              <button class="ghost mini" data-action="edit-medication" data-med-id="${med.id}">Edit</button>
+              <button class="ghost mini danger" data-action="archive-medication" data-med-id="${med.id}">Archive</button>
+            </div>
+          </article>
+        `).join("") : `<div class="empty-inline">No active medication. Tap Add to create the first plan.</div>`}
+      </div>
+    </section>
+    <section class="panel archived-panel">
+      <div class="section-heading clean-heading"><span>Archived - History retained</span></div>
+      <div class="med-list">
+        ${archived.length ? archived.map((med) => `
+          <article class="med-card health-card archived">
+            <div class="med-icon-small muted"></div>
+            <div class="med-copy">
+              <strong>${escapeHtml(med.name)}</strong>
+              <span>Archived. Past check-ins stay in History.</span>
+            </div>
+            <div class="row-actions">
+              <button class="ghost mini" data-action="restore-medication" data-med-id="${med.id}">Restore</button>
+              <button class="ghost mini danger" data-action="delete-medication" data-med-id="${med.id}">Delete</button>
+            </div>
+          </article>
+        `).join("") : `<div class="empty-inline muted-line">No archived medication.</div>`}
+      </div>
+    </section>
+  `;
+}
+
+function lock() {
+  const pending = pendingLockMeds();
+  if (!pending.length) {
+    return `
+      <section class="ordinary-lockscreen">
+        <div class="ordinary-time">20:00</div>
+        <div class="ordinary-date">Friday, Jun 26</div>
+        <div class="ordinary-note">No pending medication records</div>
+        <button class="unlock-demo" data-screen="entry">Unlock</button>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="lockscreen reminder-lockscreen">
+      <div class="lock-status">20:00 - Lock Screen</div>
+      <div class="lock-card multi-lock-card">
+        <span class="tiny-label">15 min heads up</span>
+        <h2>Medication records due today</h2>
+        <p>This reminder stays on the lock screen until each medication is recorded.</p>
+        <div class="lock-med-list">
+          ${pending.map((med) => `
+            <article class="lock-med-row">
+              <div>
+                <strong>${escapeHtml(med.name)}</strong>
+                <span>${escapeHtml(med.dose)} - ${dueCopy(med)}</span>
+              </div>
+              <button class="primary compact" data-action="check-in" data-med-id="${med.id}" data-status="confirmed" data-source="lock-screen">Taken</button>
+            </article>
+          `).join("")}
+        </div>
+        <button class="ghost full" data-action="remind-later-lock">Remind later</button>
+      </div>
+    </section>
+  `;
 }
 
 function log() {
-  const stats = getEventStats();
-  const eventRows = state.events
-    .map(
-      (event) => `
-        <div class="event-row">
-          <div class="event-date">
-            <strong>${escapeHtml(event.date)}</strong>
-            <span>${escapeHtml(event.time)}</span>
-          </div>
-          <div class="event-main">
-            <div class="title-row">
-              <strong>${escapeHtml(event.medication)}</strong>
-              ${statusTag(event.status)}
+  const s = stats();
+  return `
+    <section class="summary-band">
+      <div><span>Active</span><strong>${s.active}</strong></div>
+      <div><span>Taken</span><strong>${s.confirmed}</strong></div>
+      <div><span>Late</span><strong>${s.late}</strong></div>
+    </section>
+    <section class="panel">
+      <div class="section-heading"><span>History</span><button class="ghost mini" data-action="reset-demo">Reset</button></div>
+      <div class="timeline">
+        ${state.events.map((event) => `
+          <article class="timeline-item">
+            <div class="timeline-dot ${event.status}"></div>
+            <div>
+              <strong>${escapeHtml(event.medName)} - ${statusCopy(event.status)}</strong>
+              <span>${event.date} ${event.time} - ${escapeHtml(event.source)}</span>
+              <p>${escapeHtml(event.note)}</p>
             </div>
-            <p>${escapeHtml(event.note)}</p>
-            <span class="event-source">${escapeHtml(event.source)}</span>
-          </div>
-        </div>
-      `,
-    )
-    .join("");
-
-  return renderShell(
-    "log",
-    `
-      <p class="eyebrow">Event log and risk</p>
-      <h2>${stats.riskLevel === "Needs attention" ? "Possible treatment-path drop-off" : "Routine looks stable"}</h2>
-      <p>Your records show several interruptions in your treatment routine. This does not diagnose your condition, but it may be useful to discuss with your doctor.</p>
-
-      <section class="card">
-        <div class="metric-grid">
-          <div class="metric"><strong>${stats.missed}</strong><span>Missed dose</span></div>
-          <div class="metric"><strong>${stats.unconfirmed}</strong><span>Unconfirmed</span></div>
-          <div class="metric"><strong>${stats.uncertain}</strong><span>Uncertain</span></div>
-        </div>
-        <div class="disclaimer">Past 7 days summary generated from sample self-recorded data.</div>
-      </section>
-
-      <section class="card">
-        <div class="title-row">
-          <h3>Recent event log</h3>
-          <span class="tag navy">${stats.total} records</span>
-        </div>
-        <div class="event-list">${eventRows}</div>
-      </section>
-
-      <section class="card">
-        <h3>Suggested next actions</h3>
-        <div class="timeline">
-          <div class="timeline-item"><span class="dot">1</span><p>Enable a second reminder for weekly medication evenings.</p></div>
-          <div class="timeline-item"><span class="dot">2</span><p>Prepare questions for your doctor using the recent record summary.</p></div>
-          <div class="timeline-item"><span class="dot">3</span><p>Check medication supply before the next review date.</p></div>
-        </div>
-        <button class="primary" data-screen="doctor" type="button">Prepare doctor questions</button>
-        <button class="secondary" data-action="reset-demo" type="button">Reset demo data</button>
-      </section>
-    `,
-  );
+          </article>
+        `).join("")}
+      </div>
+    </section>
+    <section class="panel compact-panel">
+      <div class="section-heading"><span>Data rule</span></div>
+      <p class="safe-copy">Archiving a medication does not delete historical records. A record is counted as late only when it is logged more than 1 hour after the scheduled time.</p>
+    </section>
+  `;
 }
 
 function doctor() {
-  const liveAiBlock =
-    state.liveAiStatus === "idle"
-      ? `<section class="soft-panel"><strong>Live AI optional</strong><p>On Vercel, this can call DeepSeek or Gemini through a serverless API. Locally it falls back safely.</p></section>`
-      : state.liveAiStatus === "loading"
-        ? `<section class="soft-panel"><strong>Generating...</strong><p>Calling the optional server-side AI endpoint.</p></section>`
-        : `
-          <section class="card ai-output">
-            <h3>Live AI result ${state.liveAiProvider ? `(${state.liveAiProvider})` : ""}</h3>
-            <ol class="question-list">
-              ${state.liveAiQuestions.map((question) => `<li>${escapeHtml(question)}</li>`).join("")}
-            </ol>
-            <div class="disclaimer">
-              ${state.liveAiError ? `Endpoint note: ${escapeHtml(state.liveAiError)}. ` : ""}
-              Generated from sample self-recorded data. This is not medical advice.
-            </div>
-          </section>
-        `;
-
-  return renderShell(
-    "doctor",
-    `
-      <p class="eyebrow">Doctor prep</p>
-      <h2>AI question list</h2>
-      <p>Mocked AI output turns self-recorded adherence events into a concise appointment checklist.</p>
-
-      <section class="card">
-        <h3>AI pipeline shown in demo</h3>
-        <div class="ai-pipeline">
-          <div><span>Input</span><strong>Self-recorded events</strong><p>Missed, uncertain, fatigue score, next review date.</p></div>
-          <div><span>Guardrail</span><strong>Medical boundary</strong><p>No diagnosis, no dose changes, no missed-dose advice.</p></div>
-          <div><span>Output</span><strong>Doctor questions</strong><p>Clear discussion prompts for the next appointment.</p></div>
-        </div>
-      </section>
-      <button class="primary" data-action="generate-ai" type="button">Generate AI doctor question list</button>
-      <button class="secondary" data-action="generate-live-ai" type="button">Try live AI endpoint</button>
-
-      ${
-        state.generatedQuestions
-          ? `
-            <section class="card ai-output">
-              <h3>Questions to ask your doctor</h3>
-              <ol class="question-list">
-                <li>I had two uncertain medication events this month. How should I handle this in the future?</li>
-                <li>I missed one weekly dose. Should I record it differently or contact the clinic next time?</li>
-                <li>My fatigue score increased recently. Should any follow-up tests be considered?</li>
-                <li>Should my next review date or lab test schedule be adjusted?</li>
-              </ol>
-              <div class="disclaimer">Generated from your self-recorded data. This is not medical advice.</div>
-            </section>
-          `
-          : `<section class="soft-panel"><strong>AI boundary</strong><p>The demo uses fixed sample output, not a live model. The product concept is summarization and communication support, not diagnosis.</p></section>`
-      }
-
-      ${liveAiBlock}
-    `,
-  );
+  const s = stats();
+  const riskLevel = s.missing >= 2 || s.pending >= 2 ? "High" : s.late >= 1 ? "Watch" : "Stable";
+  return `
+    <section class="panel risk-panel">
+      <div class="section-heading"><span>AI-monitored risk alert</span></div>
+      <h2>Prevent medication drop-off.</h2>
+      <p>AI monitors late records, missing records, and repeated delays. It can suggest setting an alarm, but it does not provide medical advice.</p>
+      <div class="risk-score-card">
+        <span>Current risk</span>
+        <strong>${riskLevel}</strong>
+        <small>${s.pending} pending today - ${s.late} late record(s)</small>
+      </div>
+      <div class="rule-list">
+        <article class="rule-card active-rule">
+          <div>
+            <strong>Late record</strong>
+            <span>Count as late only when the user records medication more than 1 hour after the scheduled time.</span>
+          </div>
+          <em>On</em>
+        </article>
+        <article class="rule-card high-rule">
+          <div>
+            <strong>Missing record risk</strong>
+            <span>If records are missing repeatedly, flag drop-off risk and prompt the user to set an alarm.</span>
+          </div>
+          <em>High</em>
+        </article>
+        <article class="rule-card">
+          <div>
+            <strong>Alarm suggestion</strong>
+            <span>Prompt: Would you like to set a phone alarm 15 minutes before this medication?</span>
+          </div>
+          <em>Draft</em>
+        </article>
+      </div>
+      <button class="primary full" data-action="open-reminder">Preview lock screen</button>
+    </section>
+  `;
 }
 
-function pm() {
-  const stats = getEventStats();
-
-  return renderShell(
-    "pm",
-    `
-      <p class="eyebrow">Product thinking</p>
-      <h2>AI PM view</h2>
-      <section class="card">
-        <h3>Success metrics</h3>
-        <div class="metric-grid pm-metrics">
-          <div class="metric"><strong>${stats.confirmationRate}%</strong><span>Reminder confirmation</span></div>
-          <div class="metric"><strong>${stats.uncertaintyRate}%</strong><span>Not sure events</span></div>
-          <div class="metric"><strong>${stats.doctorPrepRate}%</strong><span>Doctor prep use</span></div>
-          <div class="metric"><strong>D7</strong><span>Retention cohort</span></div>
-        </div>
-        <div class="disclaimer">Metrics are calculated from local demo events and mock cohort assumptions.</div>
-      </section>
-
-      <section class="card">
-        <h3>Prioritization logic</h3>
-        <div class="timeline">
-          <div class="timeline-item"><span class="dot">1</span><p>Prototype validates the core loop: widget reminder, one-tap recording, uncertainty capture, risk signal, AI doctor prep.</p></div>
-          <div class="timeline-item"><span class="dot">2</span><p>V1 ships native notifications, lock-screen widgets, secure local storage, and event analytics.</p></div>
-          <div class="timeline-item"><span class="dot">3</span><p>V2 adds model-assisted summaries, caregiver sharing, and clinic-facing export after safety review.</p></div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h3>AI boundary</h3>
-        <p>CareLoop does not diagnose, change medication, or provide missed-dose medical advice. AI is used for summarization, pattern surfacing, and doctor communication preparation.</p>
-      </section>
-
-      <section class="card">
-        <h3>Data instrumentation</h3>
-        <div class="timeline">
-          <div class="timeline-item"><span class="dot">A</span><p>Log every reminder action with source: widget, lock screen, or full app.</p></div>
-          <div class="timeline-item"><span class="dot">B</span><p>Compare confirmation rate before and after enabling second reminders.</p></div>
-          <div class="timeline-item"><span class="dot">C</span><p>Measure whether AI doctor prep increases repeat usage before review dates.</p></div>
-        </div>
-      </section>
-
-      <button class="primary" data-screen="entry" type="button">Replay core flow</button>
-      <button class="secondary" data-screen="doctor" type="button">Show AI output</button>
-      <button class="ghost" data-screen="log" type="button">Review event log</button>
-    `,
-  );
+function page() {
+  const pages = { entry, today, meds, lock, log, doctor };
+  return (pages[state.screen] || entry)();
 }
 
-function profile() {
-  return renderShell(
-    "pm",
-    `
-      <p class="eyebrow">Profile</p>
-      <h2>Demo user</h2>
-      <section class="card">
-        <h3>Care preferences</h3>
-        <p>Sample data only. No real patient information is stored in this prototype.</p>
-        <div class="stack">
-          <div class="metric-row"><span>Second reminder</span><span class="tag">Enabled</span></div>
-          <div class="metric-row"><span>Review countdown</span><span class="tag navy">18 days</span></div>
-          <div class="metric-row"><span>AI doctor prep</span><span class="tag">Mocked</span></div>
-        </div>
-      </section>
-    `,
-  );
+function renderNav() {
+  if (["lock"].includes(state.screen)) return "";
+  return `
+    <nav class="nav bottom-nav">
+      ${navItems.map((item) => `
+        <button class="nav-item ${state.screen === item.id ? "active" : ""}" data-screen="${item.id}">
+          <small>${item.label}</small>
+        </button>
+      `).join("")}
+    </nav>
+  `;
 }
-
-const screens = {
-  welcome,
-  entry,
-  today,
-  meds,
-  lock,
-  uncertain,
-  log,
-  doctor,
-  pm,
-  profile,
-};
 
 function render() {
-  app.innerHTML = screens[state.screen]();
+  const app = document.querySelector("#app");
+  const hasNav = !["lock"].includes(state.screen);
+  app.innerHTML = `
+    <div class="content ${hasNav ? "with-nav" : ""} ${state.screen === "lock" ? "lock-mode" : ""}">${page()}</div>
+    ${renderNav()}
+  `;
 }
 
-app.addEventListener("click", (event) => {
-  const target = event.target.closest("button");
-  if (!target) return;
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) return;
 
-  const screen = target.dataset.screen;
-  const action = target.dataset.action;
+  const screen = button.dataset.screen;
+  const action = button.dataset.action;
+  const medId = button.dataset.medId;
 
   if (screen) {
-    setScreen(screen);
+    const options = {};
+    if (button.dataset.openForm === "true") {
+      options.showMedForm = true;
+      options.editingMedId = null;
+    }
+    setScreen(screen, options);
     return;
   }
 
-  if (action === "toggle-form") {
-    state.showMedForm = !state.showMedForm;
+  if (action === "new-medication") {
+    state.showMedForm = true;
+    state.editingMedId = null;
+    saveState();
+    render();
   }
 
-  if (action === "taken") {
-    state.reminderStatus = "confirmed";
-    addEvent("confirmed", "Confirmed from simulated lock-screen popup.", "Lock screen");
-    setScreen("today");
-    return;
+  if (action === "cancel-med-form") {
+    state.showMedForm = false;
+    state.editingMedId = null;
+    saveState();
+    render();
   }
 
-  if (action === "later") {
-    state.reminderStatus = "pending";
-    addEvent("unconfirmed", "User chose remind later; confirmation still pending.", "Lock screen");
-    setScreen("today");
-    return;
+  if (action === "save-medication") saveMedicationFromForm();
+
+  if (action === "toggle-reminder") {
+    state.reminderEnabled = !state.reminderEnabled;
+    saveState();
+    const badge = button.querySelector(".switch-on");
+    if (badge) {
+      badge.textContent = state.reminderEnabled ? "On" : "Off";
+      badge.classList.toggle("off", !state.reminderEnabled);
+    }
   }
 
-  if (action === "save-uncertain" || action === "check-pillbox") {
-    state.reminderStatus = "uncertain";
-    state.noteSaved = true;
-    addEvent(
-      "uncertain",
-      action === "check-pillbox"
-        ? "User checked the pill box and still needed to record uncertainty."
-        : "User saved uncertain status to avoid duplicate dosing.",
-      "Lock screen",
-    );
+  if (action === "edit-medication") {
+    state.showMedForm = true;
+    state.editingMedId = medId;
+    saveState();
+    render();
   }
 
-  if (action === "generate-ai") {
-    state.generatedQuestions = true;
-    persistState();
+  if (action === "archive-medication") archiveMedication(medId);
+  if (action === "restore-medication") restoreMedication(medId);
+  if (action === "delete-medication") deleteMedication(medId);
+
+  if (action === "open-reminder") setScreen("lock");
+
+  if (action === "check-in") {
+    const source = button.dataset.source || "today";
+    recordCheckIn(medId, button.dataset.status, source);
+    setScreen(source === "lock-screen" ? "lock" : "today");
   }
 
-  if (action === "generate-live-ai") {
-    generateLiveAi();
-    return;
+  if (action === "remind-later-lock") {
+    state.lockSnoozed = true;
+    saveState();
+    render();
   }
 
-  if (action === "reset-demo") {
-    resetDemoData();
-    return;
-  }
-
-  render();
+  if (action === "reset-demo") resetDemo();
 });
 
-async function generateLiveAi() {
-  state.liveAiStatus = "loading";
-  render();
-
-  try {
-    const response = await fetch("/api/generate-questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        record: {
-          window: "past 30 days",
-          uncertainEvents: 2,
-          missedWeeklyDoses: 1,
-          unconfirmedDoses: 2,
-          fatigueTrend: "increased recently",
-          nextReviewInDays: 18,
-        },
-      }),
-    });
-    const data = await response.json();
-    state.liveAiStatus = "done";
-    state.liveAiProvider = data.provider || "serverless";
-    state.liveAiQuestions = data.questions || [];
-    state.liveAiError = data.fallback ? data.error || "not configured" : "";
-  } catch (error) {
-    state.liveAiStatus = "done";
-    state.liveAiProvider = "local fallback";
-    state.liveAiError = "serverless endpoint unavailable in local static preview";
-    state.liveAiQuestions = [
-      "I had two uncertain medication events this month. How should I handle this in the future?",
-      "I missed one weekly dose. Should I record it differently or contact the clinic next time?",
-      "My fatigue score increased recently. Should any follow-up tests be considered?",
-      "Should my next review date or lab test schedule be adjusted?",
-    ];
-  }
-
-  render();
-}
-
-loadSavedState();
-applyInitialRoute();
 render();
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js").catch(() => {
-      // The prototype still works if the installable-app layer is unavailable.
-    });
-  });
+  navigator.serviceWorker.register("/service-worker.js").catch(() => {});
 }

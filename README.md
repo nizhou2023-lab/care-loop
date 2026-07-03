@@ -19,7 +19,8 @@ recommend dosage, or provide missed-dose instructions.
    button. The reminder stays until all due medications are recorded.
 6. Open History to view persisted local records and the late-record rule.
 7. Use Archive to remove a medication from the active plan while keeping its
-   history. Use Delete to fully remove an archived medication and its records.
+   history. Use Delete to remove the medication plan while keeping historical
+   records for review.
 
 ## AI Scope
 

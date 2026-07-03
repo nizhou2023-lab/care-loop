@@ -1,5 +1,26 @@
-const STORAGE_KEY = "careloop-demo-state-v6";
-const todayLabel = "Jun 26";
+const STORAGE_KEY = "careloop-demo-state-v7";
+
+function formatDateLabel(date = new Date()) {
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatLongDateLabel(date = new Date()) {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function offsetDate(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+const todayLabel = formatDateLabel();
+const yesterdayLabel = formatDateLabel(offsetDate(-1));
+const lastWeekLabel = formatDateLabel(offsetDate(-7));
 
 const seedMeds = [
   {
@@ -29,7 +50,7 @@ const seedEvents = [
     id: "event-1",
     medId: "med-bp",
     medName: "Blood pressure medication",
-    date: "Jun 25",
+    date: yesterdayLabel,
     time: "08:10",
     status: "confirmed",
     source: "today",
@@ -39,7 +60,7 @@ const seedEvents = [
     id: "event-2",
     medId: "med-weekly",
     medName: "Weekly injection",
-    date: "Jun 19",
+    date: lastWeekLabel,
     time: "21:08",
     status: "late",
     source: "lock-screen",
@@ -265,7 +286,6 @@ function restoreMedication(medId) {
 
 function deleteMedication(medId) {
   state.meds = state.meds.filter((med) => med.id !== medId);
-  state.events = state.events.filter((event) => event.medId !== medId);
   saveState();
   render();
 }
@@ -477,7 +497,7 @@ function lock() {
     return `
       <section class="ordinary-lockscreen">
         <div class="ordinary-time">20:00</div>
-        <div class="ordinary-date">Friday, Jun 26</div>
+        <div class="ordinary-date">${formatLongDateLabel()}</div>
         <div class="ordinary-note">No pending medication records</div>
         <button class="unlock-demo" data-screen="entry">Unlock</button>
       </section>
@@ -533,7 +553,7 @@ function log() {
     </section>
     <section class="panel compact-panel">
       <div class="section-heading"><span>Data rule</span></div>
-      <p class="safe-copy">Archiving a medication does not delete historical records. A record is counted as late only when it is logged more than 1 hour after the scheduled time.</p>
+      <p class="safe-copy">Archiving or deleting a medication plan does not delete historical records. A record is counted as late only when it is logged more than 1 hour after the scheduled time.</p>
     </section>
   `;
 }

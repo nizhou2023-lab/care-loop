@@ -3,3 +3,17 @@ node_modules/
 .env
 .env.local
 npm-debug.log*
+
+# Local deployment bundle and generated/private working files
+deploy-careloop/
+output/
+tmp/
+render_prep/
+render_resume/
+CareLoop_AlibabaHealth_AI_PM/
+*.zip
+*.docx
+*.pdf
+build_career_docs.py
+export_docx_to_pdf.ps1
+generate_review_pdf.py

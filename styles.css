@@ -989,7 +989,11 @@ p {
   .row-actions {
     width: 100%;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 753a7a64adfbac9956f5b086d8af4d58cf82a660
 
 /* UX polish pass: clearer navigation, Health-style plan setup, AI alerts */
 .nav.bottom-nav {
@@ -1500,4 +1504,8 @@ p {
   .ios-row select {
     text-align: left;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 753a7a64adfbac9956f5b086d8af4d58cf82a660

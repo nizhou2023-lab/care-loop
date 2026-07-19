@@ -28,6 +28,19 @@ The current demo does not call a live AI model. The Risk page is implemented
 with deterministic product rules. A large model is not necessary for the MVP
 loop of planning, reminding, recording, and history review.
 
+## Why No Live AI Model In MVP
+
+CareLoop's current summary and risk signals can be handled with structured
+records, deterministic rules, and template-based copy. For example, the product
+can flag repeated late records, missed-record patterns, weekend drop-off risk,
+or a pre-visit summary without asking a model to infer medical meaning.
+
+A future LLM or agent layer may become useful only when CareLoop handles
+non-structured inputs such as free-text notes, reports, visit-preparation
+materials, or multi-step care-preparation tasks. Even then, it should summarize,
+organize, and prepare user-confirmed information, not diagnose, change dosage,
+or make medical decisions.
+
 This prototype was built with AI coding assistance. The product definition,
 interaction logic, safety boundaries, rule design, and acceptance checks were
 handled by the author.

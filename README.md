@@ -2,7 +2,7 @@
 
 CareLoop is a static, clickable product demo for medication adherence support.
 It shows a mobile-first flow for medication planning, daily recording,
-lock-screen reminders, history tracking, and AI-monitored risk alerts.
+lock-screen reminders, history tracking, and rule-based risk alerts.
 
 CareLoop is not a medical advisor. It does not diagnose, change medication,
 recommend dosage, or provide missed-dose instructions.
@@ -14,7 +14,7 @@ recommend dosage, or provide missed-dose instructions.
    and reminder behavior.
 3. Open Today and record a medication as Taken. The button changes to Recorded
    and cannot be clicked repeatedly.
-4. Open Risk to view the AI-monitored risk alert concept.
+4. Open Risk to view the rule-based risk alert concept.
 5. Preview the lock-screen reminder. Each pending medication has one Taken
    button. The reminder stays until all due medications are recorded.
 6. Open History to view persisted local records and the late-record rule.
@@ -24,10 +24,15 @@ recommend dosage, or provide missed-dose instructions.
 
 ## AI Scope
 
-The current demo does not call a live AI model. The Risk page shows where AI
-would be embedded in a production version.
+The current demo does not call a live AI model. The Risk page is implemented
+with deterministic product rules. A large model is not necessary for the MVP
+loop of planning, reminding, recording, and history review.
 
-Future AI behavior:
+This prototype was built with AI coding assistance. The product definition,
+interaction logic, safety boundaries, rule design, and acceptance checks were
+handled by the author.
+
+Possible future AI behavior, only under explicit safety boundaries:
 
 - Monitor behavior signals such as missing records, repeated late records, and
   delayed check-ins.

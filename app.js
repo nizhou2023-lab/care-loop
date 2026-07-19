@@ -367,7 +367,7 @@ function entry() {
     <section class="hero entry-hero">
       <div class="brand-row"><span class="logo-dot"></span><span>CARELOOP HOME</span></div>
       <h1>Stay on your treatment path.</h1>
-      <p>Set up a medication plan, record today's doses, and use AI-monitored alerts to prevent drop-off.</p>
+      <p>Set up a medication plan, record today's doses, and use rule-based alerts to prevent drop-off.</p>
       <div class="hero-actions">
         <button class="primary" data-screen="today">Start Today</button>
         <button class="secondary" data-screen="meds" data-open-form="true">Add Medication</button>
@@ -382,7 +382,7 @@ function entry() {
       <button class="widget-card" data-screen="doctor">
         <span>Risk preview</span>
         <strong>15 min heads up</strong>
-        <small>Open AI-monitored alert</small>
+        <small>Open risk alert</small>
       </button>
     </section>
   `;
@@ -563,9 +563,9 @@ function doctor() {
   const riskLevel = s.missing >= 2 || s.pending >= 2 ? "High" : s.late >= 1 ? "Watch" : "Stable";
   return `
     <section class="panel risk-panel">
-      <div class="section-heading"><span>AI-monitored risk alert</span></div>
+      <div class="section-heading"><span>Rule-based risk alert</span></div>
       <h2>Prevent medication drop-off.</h2>
-      <p>AI monitors late records, missing records, and repeated delays. It can suggest setting an alarm, but it does not provide medical advice.</p>
+      <p>CareLoop watches late records, missing records, and repeated delays with clear product rules. It can suggest setting an alarm, but it does not provide medical advice.</p>
       <div class="risk-score-card">
         <span>Current risk</span>
         <strong>${riskLevel}</strong>
